@@ -19,11 +19,14 @@ class GraphWidget(QWidget):
         self.grid_pen_dark = QPen()
         self.grid_pen_dark.setColor(QColor(128, 128, 128))
         self.grid_pen_dark.setWidth(1)
+        self.points_pen = QPen()
+        self.points_pen.setWidth(1)
         self.min_x = -20
         self.max_x = 20
         self.min_y = -15
         self.max_y = 15
         self.axis_intersection = (0, 0)
+        self.points = []
 
     def set_parameters(self, rect: QRect):
         self.x, self.y, self.w, self.h = rect.x(), rect.y(), rect.width(), rect.height()
@@ -31,8 +34,21 @@ class GraphWidget(QWidget):
     def paintEvent(self, paintEvent: QPaintEvent):
         qp = QPainter()
         qp.begin(self)
+        if self.points:
+            coords_x = list(map(lambda point: point[0], self.points))
+            coords_y = list(map(lambda point: point[1], self.points))
+            self.min_x = min(coords_x) - (max(coords_x) - min(coords_x)) / 6
+            self.max_x = max(coords_x) + (max(coords_x) - min(coords_x)) / 6
+            self.min_y = min(coords_y) - (max(coords_y) - min(coords_y)) / 4
+            self.max_y = max(coords_y) + (max(coords_y) - min(coords_y)) / 4
+        else:
+            self.min_x = -20
+            self.max_x = 20
+            self.min_y = -15
+            self.max_y = 15
         self.drawAxes(qp)
         self.drawGrid(qp)
+        self.drawPoints(qp)
         qp.end()
 
     def drawAxes(self, p: QPainter):
@@ -90,12 +106,23 @@ class GraphWidget(QWidget):
                 textRect = QRect(0, y + 2, inter_x - 2, self.h)
                 p.drawText(textRect, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop, f"{coords[1]:.2f}")
 
+    def setDrawnPoints(self, points):
+        self.points = points
+
+    def drawPoints(self, p: QPainter):
+        p.setPen(self.points_pen)
+        p.setBrush(QColor(0, 0, 0))
+        for point in self.points:
+            x, y = point
+            cx, cy = self.calculateCanvasCoords(x, y)
+            p.drawEllipse(cx - 2, cy - 2, 5, 5)
+
     def calculateCanvasCoords(self, rx: float, ry: float):
         canvas_x = int(self.w * ((rx - self.min_x) / (self.max_x - self.min_x)))
-        canvas_y = int(self.h * ((ry - self.min_y) / (self.max_y - self.min_y)))
+        canvas_y = int(self.h * ((self.max_y - ry) / (self.max_y - self.min_y)))
         return canvas_x, canvas_y
 
     def calculateRealCoords(self, cx: int, cy: int):
         real_x = self.min_x + (self.max_x - self.min_x) * (cx / self.w)
-        real_y = -(self.min_y + (self.max_y - self.min_y) * (cy / self.h))
+        real_y = self.max_y - (self.max_y - self.min_y) * (cy / self.h)
         return real_x, real_y
