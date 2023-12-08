@@ -40,7 +40,7 @@ class Window(QMainWindow):
             if self.points_table.item(row_count - 1, 0).text().strip() == "":
                 self.points_table.item(row_count - 1, 1).setText("0")
             else:
-                self.points_table.item(row_count - 1, 1).setText("0")
+                self.points_table.item(row_count - 1, 0).setText("0")
         for i in range(row_count - 2, -1, -1):
             if self.points_table.item(i, 0).text().strip() == "" and self.points_table.item(i, 1).text().strip() == "":
                 self.points_table.removeRow(i)
