@@ -32,18 +32,18 @@ class Window(QMainWindow):
     def update_table(self):
         self.points_table.blockSignals(True)
         row_count = self.points_table.rowCount()
-        if self.points_table.item(row_count - 1, 0).text().strip() == "" or \
-                self.points_table.item(row_count - 1, 1).text().strip() == "":
+        if self.points_table.item(row_count - 1, 0).text().strip() != "" or \
+                self.points_table.item(row_count - 1, 1).text().strip() != "":
             self.points_table.setRowCount(row_count + 1)
             self.points_table.setItem(row_count, 0, QTableWidgetItem(""))
             self.points_table.setItem(row_count, 1, QTableWidgetItem(""))
-        for i in range(row_count - 1, -1, -1):
+            if self.points_table.item(row_count - 1, 0).text().strip() == "":
+                self.points_table.item(row_count - 1, 1).setText("0")
+            else:
+                self.points_table.item(row_count - 1, 1).setText("0")
+        for i in range(row_count - 2, -1, -1):
             if self.points_table.item(i, 0).text().strip() == "" and self.points_table.item(i, 1).text().strip() == "":
                 self.points_table.removeRow(i)
-            elif self.points_table.item(i, 0).text().strip() == "":
-                self.points_table.item(i, 0).setText("0")
-            elif self.points_table.item(i, 1).text().strip() == "":
-                self.points_table.item(i, 1).setText("0")
         self.points_table.blockSignals(False)
 
     def calculate(self):
@@ -60,6 +60,14 @@ class Window(QMainWindow):
         self.canvas.setDrawnPoints(points)
         self.repaint()
         self.error_lbl.setText("")
+        self.function_lbl.setText(
+            f"Предполагаемая зависимость: y = {self.canvas.result['a']}x + {self.canvas.result['b']}")
+        if self.canvas.result["accuracy"] == 0:
+            self.estimate_lbl.setText("")
+        elif self.canvas.result["accuracy"] == 1:
+            self.estimate_lbl.setText("Функция может быть определена неточно")
+        elif self.canvas.result["accuracy"] == 2:
+            self.estimate_lbl.setText("Слишком большой разброс значений: точно определить функцию невозможно")
 
     def get_points(self):
         row_count = self.points_table.rowCount()

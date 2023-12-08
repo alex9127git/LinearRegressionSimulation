@@ -1,3 +1,5 @@
+import math
+
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
@@ -21,12 +23,23 @@ class GraphWidget(QWidget):
         self.grid_pen_dark.setWidth(1)
         self.points_pen = QPen()
         self.points_pen.setWidth(1)
+        self.func_pen = QPen()
+        self.func_pen.setColor(QColor(0, 0, 255))
+        self.func_pen.setWidth(3)
+        self.diff_pen = QPen()
+        self.diff_pen.setColor(QColor(128, 0, 128))
+        self.diff_pen.setWidth(3)
         self.min_x = -20
         self.max_x = 20
         self.min_y = -15
         self.max_y = 15
         self.axis_intersection = (0, 0)
         self.points = []
+        self.result = {
+            "a": 0,
+            "b": 0,
+            "accuracy": 0
+        }
 
     def set_parameters(self, rect: QRect):
         self.x, self.y, self.w, self.h = rect.x(), rect.y(), rect.width(), rect.height()
@@ -49,6 +62,10 @@ class GraphWidget(QWidget):
         self.drawAxes(qp)
         self.drawGrid(qp)
         self.drawPoints(qp)
+        if not self.points:
+            return
+        params = self.calculateResult()
+        self.drawFunction(qp, *params)
         qp.end()
 
     def drawAxes(self, p: QPainter):
@@ -116,6 +133,56 @@ class GraphWidget(QWidget):
             x, y = point
             cx, cy = self.calculateCanvasCoords(x, y)
             p.drawEllipse(cx - 2, cy - 2, 5, 5)
+
+    def calculateResult(self):
+        digits_x = max(map(lambda x: len(str(x[0])) - str(x[0]).find("."), self.points))
+        digits_y = max(map(lambda x: len(str(x[1])) - str(x[1]).find("."), self.points))
+        max_digits = max(digits_x, digits_y)
+        p1 = sum(map(lambda x: x[0], self.points))
+        p2 = sum(map(lambda x: x[1], self.points))
+        p3 = sum(map(lambda x: x[0] ** 2, self.points))
+        p4 = sum(map(lambda x: x[0] * x[1], self.points))
+        p5 = len(self.points)
+        # p3*a + p1*b = p4
+        # p1*a + p5*b = p2
+        diff = p3 / p1
+        p1_, p2_, p5_ = p1 * diff, p2 * diff, p5 * diff
+        div = p5_ - p1
+        prod = p2_ - p4
+        b = prod / div
+        a = (p4 - p1 * b) / p3
+        a = round(a, max_digits)
+        b = round(b, max_digits)
+        return a, b
+
+    def drawFunction(self, p: QPainter, a, b):
+        x1 = self.min_x
+        y1 = a * x1 + b
+        x2 = self.max_x
+        y2 = a * x2 + b
+        x1, y1 = self.calculateCanvasCoords(x1, y1)
+        x2, y2 = self.calculateCanvasCoords(x2, y2)
+        p.setPen(self.func_pen)
+        p.drawLine(x1, y1, x2, y2)
+        p.setPen(self.diff_pen)
+        avg_y = sum(map(lambda pt: pt[1], self.points)) / len(self.points)
+        diffs = 0
+        for point in self.points:
+            x, y = point
+            xr, yr = self.calculateCanvasCoords(x, y)
+            xt, yt = x, a * x + b
+            xtr, ytr = self.calculateCanvasCoords(xt, yt)
+            p.drawLine(xr, yr, xtr, ytr)
+            diffs += (y - yt) ** 2
+        log_diff = abs(math.log10(avg_y) - math.log10(diffs))
+        if log_diff < 0.5:
+            self.result["accuracy"] = 2
+        elif log_diff < 1:
+            self.result["accuracy"] = 1
+        else:
+            self.result["accuracy"] = 0
+        self.result["a"] = a
+        self.result["b"] = b
 
     def calculateCanvasCoords(self, rx: float, ry: float):
         canvas_x = int(self.w * ((rx - self.min_x) / (self.max_x - self.min_x)))
