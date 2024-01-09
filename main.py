@@ -2,13 +2,14 @@ import sys
 from PyQt5.QtWidgets import QMainWindow, QApplication, QTableWidget, QTableWidgetItem, QPushButton, QLabel
 from PyQt5 import uic
 from graph_widget import GraphWidget
+from main_window import Ui_MainWindow
 
 
 def except_hook(cls, exception, traceback):
     sys.__excepthook__(cls, exception, traceback)
 
 
-class Window(QMainWindow):
+class Window(QMainWindow, Ui_MainWindow):
     canvas: GraphWidget = None
     points_table: QTableWidget = None
     function_lbl: QLabel = None
@@ -17,7 +18,7 @@ class Window(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        uic.loadUi("main_window.ui", self)
+        self.setupUi(self)
         self.canvas.set_parameters(self.canvas.geometry())
         self.points_table.setRowCount(1)
         self.points_table.setItem(0, 0, QTableWidgetItem(""))
@@ -38,9 +39,9 @@ class Window(QMainWindow):
             self.points_table.setItem(row_count, 0, QTableWidgetItem(""))
             self.points_table.setItem(row_count, 1, QTableWidgetItem(""))
             if self.points_table.item(row_count - 1, 0).text().strip() == "":
-                self.points_table.item(row_count - 1, 1).setText("0")
-            else:
                 self.points_table.item(row_count - 1, 0).setText("0")
+            else:
+                self.points_table.item(row_count - 1, 1).setText("0")
         for i in range(row_count - 2, -1, -1):
             if self.points_table.item(i, 0).text().strip() == "" and self.points_table.item(i, 1).text().strip() == "":
                 self.points_table.removeRow(i)
