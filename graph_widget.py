@@ -5,6 +5,9 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 
 
+E = 10e-9
+
+
 class GraphWidget(QWidget):
     def __init__(self, parent):
         super(GraphWidget, self).__init__(parent)
@@ -166,18 +169,21 @@ class GraphWidget(QWidget):
         p.drawLine(x1, y1, x2, y2)
         p.setPen(self.diff_pen)
         avg_y = sum(map(lambda pt: pt[1], self.points)) / len(self.points)
-        diffs = 0
+        real_diffs = 0
+        pred_diffs = 0
         for point in self.points:
             x, y = point
             xr, yr = self.calculateCanvasCoords(x, y)
             xt, yt = x, a * x + b
             xtr, ytr = self.calculateCanvasCoords(xt, yt)
             p.drawLine(xr, yr, xtr, ytr)
-            diffs += (y - yt) ** 2
-        log_diff = abs(math.log10(avg_y) - math.log10(diffs))
-        if log_diff < 0.5:
+            real_diffs += (y - avg_y) ** 2
+            pred_diffs += (yt - avg_y) ** 2
+        accuracy = pred_diffs / real_diffs
+        print(accuracy)
+        if accuracy < 0.4:
             self.result["accuracy"] = 2
-        elif log_diff < 1:
+        elif accuracy < 0.7:
             self.result["accuracy"] = 1
         else:
             self.result["accuracy"] = 0
